@@ -2,6 +2,8 @@ from fastapi import FastAPI, Query
 import nflreadpy as nfl
 import pandas as pd
 
+from app import custom_score_calc
+
 app = FastAPI()
 
 POS = ["QB", "RB", "WR", "TE", "K", "D/ST"]
@@ -27,8 +29,12 @@ def get_ppr_points(pos: str = Query(..., description="Position filter, e.g., QB,
     df = player_stats.copy()
 
     # Only includes regular season stats for the specified position
-    df = df[df["season_type"] == "REG"]
+    df = df[df["season_type"] == "REG"] # Done here to keep team data, if done when loading stats, team data would be gone
     df = df[df["position"] == pos]
+
+    # Calculate custom scoring for Kickers and Defense/Special Teams
+    if pos == 'K':
+        df = custom_score_calc.kicker_scoring(df)
 
     # Aggregates points by player, summing across teams for players who switched teams mid-season
     agg_df = df.groupby(
